@@ -1,0 +1,193 @@
+﻿using HuynhNguyenMinhTrien_6551071088_VP104_LTTQ.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace HuynhNguyenMinhTrien_6551071088_VP104_LTTQ
+
+{
+    public partial class Form1 : Form
+    {
+        private DuLieu_NhanSuContext _context = new DuLieu_NhanSuContext();
+
+        private async Task LoadDataAsync()
+        {
+            var list = await _context.NhanViens
+        .Select(x => new
+        {
+            x.MaNhanVien,
+            x.TenNhanVien,
+            x.LuongCoBan,
+
+
+        })
+        .ToListAsync();
+
+            dgvDanhSachNhanVien.DataSource = list;
+        }
+
+        private void SetButtonState(bool dangChonDong)
+        {
+            if (dangChonDong)
+            {
+                btnThem.Enabled = false;
+                btnSua.Enabled = true;
+                btnXoa.Enabled = true;
+            }
+            else
+            {
+                btnThem.Enabled = true;
+                btnSua.Enabled = false;
+                btnXoa.Enabled = false;
+            }
+
+
+        }
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            await LoadDataAsync();
+        }
+
+        private void btnThoat_Click(object sender, EventArgs e)
+        {
+
+            DialogResult hoi = MessageBox.Show(
+                "Bạn có chắc chắn muốn thoát chương trình không?",
+                "Xác nhận thoát",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+
+            if (hoi == DialogResult.Yes)
+            {
+                this.Close();
+            }
+        }
+
+        private async void btnXoa_Click(object sender, EventArgs e)
+        {
+
+            if (string.IsNullOrEmpty(txtMaNhanVien.Text))
+            {
+                MessageBox.Show("Vui lòng chọn dòng cần xóa!");
+                return;
+            }
+
+
+            DialogResult hoi = MessageBox.Show(
+                "Bạn có chắc chắn muốn xóa dữ liệu này không?",
+                "Xác nhận xóa",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+
+            if (hoi == DialogResult.Yes)
+            {
+                int ma = int.Parse(txtMaNhanVien.Text);
+                var item = await _context.NhanViens.FindAsync(ma);
+                if (item != null)
+                {
+                    _context.NhanViens.Remove(item);
+                    await _context.SaveChangesAsync();
+
+                    MessageBox.Show("Xóa thành công!");
+                    await LoadDataAsync();
+
+                }
+            }
+
+        }
+
+        private async void btnThem_Click(object sender, EventArgs e)
+        {
+
+            if (!int.TryParse(txtLuongCoBan.Text.Trim(), out int LuongCoBan) || LuongCoBan < 0)
+            {
+                MessageBox.Show("Chỉ nhập được số thực hoặc số nguyên!");
+                txtLuongCoBan.Focus();
+                return;
+
+            }
+
+
+            if (string.IsNullOrEmpty(txtTenNhanVien.Text.Trim()))
+            {
+                MessageBox.Show("Vui lòng không để trống tên!");
+                txtTenNhanVien.Focus();
+                return;
+            }
+
+            bool daTonTai = await _context.NhanViens.AnyAsync(x => x.MaNhanVien.ToLower() == txtMaNhanVien.Text.Trim().ToLower());
+            if (daTonTai)
+            {
+                MessageBox.Show("Dữ liệu này đã tồn tại!");
+                return;
+            }
+
+            // chu ys can xem laij
+            var moi = new NhanVien
+            {
+                MaNhanVien = txtMaNhanVien.Text.Trim(),
+                TenNhanVien = txtTenNhanVien.Text.Trim(),
+                LuongCoBan = txtLuongCoBan.Text.Trim(),
+
+            };
+
+            _context.NhanViens.Add(moi);
+            await _context.SaveChangesAsync();
+
+            MessageBox.Show("Thêm mới thành công!");
+            await LoadDataAsync();
+
+
+        }
+
+        private async void btnSua_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (dgvDanhSachNhanVien.CurrentRow == null) return;
+                string ma = dgvDanhSachNhanVien.CurrentRow.Cells["MaNhanVien"].Value?.ToString() ?? "";
+
+                var nv = await _context.NhanViens.FindAsync(ma);
+                if (nv == null)
+                {
+                    MessageBox.Show("Không tìm thấy sinh viên cần sửa!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                
+                if (string.IsNullOrWhiteSpace(txtTenNhanVien.Text))
+                {
+                    MessageBox.Show("Họ tên không được để trống!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                nv.MaNhanVien = txtMaNhanVien.Text.Trim();
+                nv.TenNhanVien = txtTenNhanVien.Text.Trim();
+                nv.LuongCoBan = txtLuongCoBan.Text.Trim();
+
+
+                await _context.SaveChangesAsync();
+                MessageBox.Show("Cập nhật thông tin thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await LoadDataAsync();
+              
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi cập nhật: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+
+        }
+    }
+}
+
+
+
